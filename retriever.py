@@ -9,6 +9,7 @@ from langchain_core.prompts import (
     HumanMessagePromptTemplate,
     SystemMessagePromptTemplate,
 )
+from langchain_core.runnables import RunnablePassthrough
 from langchain_core.vectorstores.base import VectorStoreRetriever
 from langchain_openai import ChatOpenAI
 
@@ -72,32 +73,40 @@ def build_context_from_docs(docs: list[Document]) -> str:
     return context
 
 
-def main():
-    dotenv.load_dotenv()
-    cfg = get_cfg()
-    system_prompt = Path("./data/prompts/system_prompt.txt").read_text(encoding="utf-8")
+def init_rag_chain_from_cfg(cfg: dict):
+    system_prompt = Path(cfg["system_prompt_path"]).read_text(encoding="utf-8")
 
     retriever = init_retriever_from_cfg(cfg)
     prompt = build_base_prompt_template(system_prompt=system_prompt)
 
-    user_qeury = "What documents contain quotes from the book of the prophet Ezekiel?"
-
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.6,
-    )
+    llm = ChatOpenAI(**cfg["generation"]["gpt_4o_mini"])
 
     chain = (
         {
-            "context": itemgetter("query") | retriever | build_context_from_docs,
+            "docs": itemgetter("query") | retriever,
             "query": itemgetter("query"),
         }
-        | prompt
-        | llm
+        | RunnablePassthrough.assign(
+            context=lambda x: build_context_from_docs(x["docs"])
+        )
+        | {
+            "answer": prompt | llm,
+            "docs": itemgetter("docs"),
+        }
     )
 
+    return chain
+
+
+def main():
+    dotenv.load_dotenv()
+    cfg = get_cfg()
+
+    chain = init_rag_chain_from_cfg(cfg)
+
+    user_qeury = "What documents contain quotes from the book of the prophet Ezekiel?"
     response = chain.invoke({"query": user_qeury})
-    print(response.content)
+    print(response["answer"].content)
 
 
 if __name__ == "__main__":
