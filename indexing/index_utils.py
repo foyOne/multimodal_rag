@@ -1,7 +1,5 @@
-import itertools
 from typing import Callable, Iterable, Iterator
 import copy
-import functools
 
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
@@ -14,14 +12,12 @@ from langchain_community.document_loaders import (
 from pathlib import Path
 from langchain_core.documents import Document
 
-from embeddings import init_hf_embeddings
-from vector_store import (
-    init_qdrant_vector_store,
-    init_inmemory_vector_store,
-    init_qdrant_local_vector_store,
+from .clean_text_functions import (
+    normalize_whitespace,
+    remove_page_numbers,
+    join_lines_with_incorrect_endings,
+    fix_hyphenation,
 )
-from settings import get_cfg
-import clean_text_functions
 
 
 def init_simple_splitter(
@@ -43,15 +39,13 @@ def init_simple_splitter(
 
 
 def clean_doc(doc: Document) -> Document:
-    text = clean_text_functions.normalize_whitespace(doc.page_content)
+    text = normalize_whitespace(doc.page_content)
     sections = text.split("\n\n")
 
     for idx, _ in enumerate(sections):
-        sections[idx] = clean_text_functions.fix_hyphenation(sections[idx])
-        sections[idx] = clean_text_functions.join_lines_with_incorrect_endings(
-            sections[idx]
-        )
-        sections[idx] = clean_text_functions.remove_page_numbers(sections[idx])
+        sections[idx] = fix_hyphenation(sections[idx])
+        sections[idx] = join_lines_with_incorrect_endings(sections[idx])
+        sections[idx] = remove_page_numbers(sections[idx])
         sections[idx] = sections[idx].strip()
 
     return Document(
@@ -104,49 +98,47 @@ def transform_metadata(doc: Document) -> Document:
         return doc
 
 
-def main():
-    cfg = get_cfg()
+# def create_index(cfg: dict):
+#     cfg = get_cfg()
 
-    pdf_dir = Path("./data/pdfs/education/")
-    doc_iterator = init_doc_iterator_from_pdf_dir(pdf_dir)
+#     pdf_dir = Path("./data/pdfs/education/")
+#     doc_iterator = init_doc_iterator_from_pdf_dir(pdf_dir)
 
-    splitter = init_simple_splitter(**cfg["chunking"]["baseline"])
+#     splitter = init_simple_splitter(**cfg["chunking"]["baseline"])
 
-    embeddings = init_hf_embeddings(
-        model_name=cfg["embeddings"]["bge_m3"]["model_name"],
-        device=cfg["embeddings"]["bge_m3"]["device"],
-        normalize_embeddings=cfg["embeddings"]["bge_m3"]["normalize_embeddings"],
-    )
+#     embedding_container = create_embeddings(
+#         "huggingface",
+#         cfg["embeddings"]["huggingface"]["bge_m3"],
+#     )
 
-    vector_store = init_qdrant_local_vector_store(
-        path=cfg["vectore_store"]["qdrant_local"]["path"],
-        collection_name=cfg["vectore_store"]["qdrant_local"]["collection_name"],
-        distance=cfg["vectore_store"]["qdrant_local"]["distance"],
-        embeddings=embeddings,
-        embedding_dim=cfg["embeddings"]["bge_m3"]["dim"],
-    )
+#     vector_store = create_vector_store(
+#         key="qdrant.local",
+#         cfg=cfg["vector_store"]["qdrant_local"],
+#         embedding_container=embedding_container,
+#     )
 
-    filter_metadata_adapter = functools.partial(
-        filter_metadata,
-        target_keys=[
-            "author",
-            "title",
-            "page",
-            "custom.source",
-            "custom.domain",
-        ],
-        save=True,
-    )
+#     filter_metadata_adapter = functools.partial(
+#         filter_metadata,
+#         target_keys=[
+#             "author",
+#             "title",
+#             "page",
+#             "custom.source",
+#             "custom.domain",
+#         ],
+#         save=True,
+#     )
 
-    for batch in itertools.batched(doc_iterator, cfg["indexing"]["batch_size"]):
-        batch = map(clean_doc, batch)
-        batch = map(transform_metadata, batch)
-        batch = map(filter_metadata_adapter, batch)
-        batch = tuple(batch)
+#     for batch in itertools.batched(doc_iterator, cfg["indexing"]["batch_size"]):
+#         batch = map(clean_doc, batch)
+#         batch = map(transform_metadata, batch)
+#         batch = map(filter_metadata_adapter, batch)
+#         batch = tuple(batch)
 
-        splitted_docs = splitter(batch)
-        vector_store.add_documents(splitted_docs)
+#         splitted_docs = splitter(batch)
+#         vector_store.add_documents(splitted_docs)
+#         break
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     create_index()

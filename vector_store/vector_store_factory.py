@@ -4,8 +4,10 @@ from qdrant_client.http.models import Distance, VectorParams
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import InMemoryVectorStore, VectorStore
 
+from embeddings.embeding_factory import EmbeddingModelContainer
 
-def init_qdrant_vector_store(
+
+def init_qdrant_remote_vector_store(
     url: str,
     collection_name: str,
     distance: Distance,
@@ -63,3 +65,30 @@ def init_inmemory_vector_store(
     embeddings: Embeddings,
 ) -> VectorStore:
     return InMemoryVectorStore(embeddings)
+
+
+def create_vector_store(
+    key: str,
+    cfg: dict,
+    embedding_container: EmbeddingModelContainer,
+) -> VectorStore:
+
+    match key:
+        case "qdrant.remote":
+            return init_qdrant_remote_vector_store(
+                **cfg,
+                embeddings=embedding_container.model,
+                embedding_dim=embedding_container.metadata.dim,
+            )
+        case "qdrant.local":
+            return init_qdrant_local_vector_store(
+                **cfg,
+                embeddings=embedding_container.model,
+                embedding_dim=embedding_container.metadata.dim,
+            )
+        case "inmemory":
+            return init_inmemory_vector_store(embedding_container.model)
+        case _:
+            raise Exception(
+                f"The specified type of vector store '{key}' is missing."
+            )

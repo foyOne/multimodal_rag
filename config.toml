@@ -1,30 +1,30 @@
-system_prompt_path = "./data/prompts/system_prompt.txt"
-
-[generation.gpt_4o_mini]
+[llm.openai]
 model = "gpt-4o-mini"
 temperature = 0.6
+
+[retriever]
+top_k = 3
+vector_store_top_k = 5
+num_extra_queries = 3
 
 [indexing]
 batch_size = 64
 
-[vectore_store.qdrant_remote]
+[vector_store.qdrant_remote]
 url = "http://localhost:6333"
 collection_name = "education_domain"
 distance = "Cosine"
 
-[vectore_store.qdrant_local]
+[vector_store.qdrant_local]
 path = "./data/tmp/qdrant_local"
 collection_name = "education_domain"
 distance = "Cosine"
 
-[embeddings.bge_m3]
+[embeddings.huggingface.bge_m3]
 model_name = "BAAI/bge-m3"
 device = "cpu"
 normalize_embeddings = true
 dim = 1024
-
-[embeddings.fake]
-dim = 100
 
 [chunking.baseline]
 chunk_size = 1000

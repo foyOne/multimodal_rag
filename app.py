@@ -1,36 +1,42 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Depends
 from pydantic import BaseModel
 import uvicorn
 import dotenv
 from settings import get_cfg
-from retriever import init_rag_chain_from_cfg
+from retriever import RAGService
 
 dotenv.load_dotenv()
-app_state = dict()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.cfg = get_cfg()
+    app.state.rag_service = RAGService(app.state.cfg)
+    yield
+    pass
+
+
+def get_rag_service(request: Request) -> RAGService:
+    return request.app.state.rag_service
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 class UserRequest(BaseModel):
     query: str
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    app_state["cfg"] = get_cfg()
-    app_state["chain"] = init_rag_chain_from_cfg(app_state["cfg"])
-    yield
-    app_state.clear()
+@app.post("/ask")
+async def ask(
+    user_request: UserRequest,
+    rag: RAGService = Depends(get_rag_service),
+):
+    answer = await rag.make_query_async(query=user_request.query, raw=False)
 
-
-app = FastAPI(lifespan=lifespan)
-
-
-@app.post("/predict")
-async def predict(req: UserRequest):
-    result = await app_state["chain"].ainvoke({"query": req.query})
-
-    return {"answer": result["answer"].content}
+    return {"answer": answer}
 
 
 if __name__ == "__main__":
