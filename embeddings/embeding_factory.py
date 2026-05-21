@@ -30,7 +30,6 @@ def init_hf_embeddings(
         model_name=model_name,
         model_kwargs=model_kwargs,
         encode_kwargs=encode_kwargs,
-        cache_folder="./data/tmp/hf_cache"
     )
 
     embedding_dim = hf_emdeddings._client.get_embedding_dimension()
