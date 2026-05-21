@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, Depends
-from pydantic import BaseModel
-import uvicorn
 import dotenv
-from settings import get_cfg
+from fastapi import Depends, FastAPI, Request
+from pydantic import BaseModel
+
 from retriever import RAGService
+from settings import get_cfg
 
 dotenv.load_dotenv()
 
@@ -37,7 +37,3 @@ async def ask(
     answer = await rag.make_query_async(query=user_request.query, raw=False)
 
     return {"answer": answer}
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, port=8000)

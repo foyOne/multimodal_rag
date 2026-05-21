@@ -22,7 +22,7 @@ distance = "Cosine"
 
 [embeddings.huggingface.bge_m3]
 model_name = "BAAI/bge-m3"
-device = "cpu"
+device = "cuda:0"
 normalize_embeddings = true
 dim = 1024
 

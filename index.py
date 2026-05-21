@@ -32,8 +32,8 @@ async def main():
     )
 
     vector_store = create_vector_store(
-        key="qdrant.local",
-        cfg=cfg["vector_store"]["qdrant_local"],
+        key="qdrant.remote",
+        cfg=cfg["vector_store"]["qdrant_remote"],
         embedding_container=embedding_container,
     )
 

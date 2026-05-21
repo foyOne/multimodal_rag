@@ -1,3 +1,5 @@
+import os
+
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, VectorParams
@@ -14,7 +16,10 @@ def init_qdrant_remote_vector_store(
     embeddings: Embeddings,
     embedding_dim: int,
 ) -> QdrantVectorStore:
-    client = QdrantClient(url=url)
+    client = QdrantClient(
+        url=url,
+        api_key=os.getenv("QDRANT_API_KEY"),
+    )
 
     if not client.collection_exists(collection_name):
         client.create_collection(
@@ -41,7 +46,10 @@ def init_qdrant_local_vector_store(
     embeddings: Embeddings,
     embedding_dim: int,
 ) -> QdrantVectorStore:
-    client = QdrantClient(path=path)
+    client = QdrantClient(
+        path=path,
+        api_key=os.getenv("QDRANT_API_KEY"),
+    )
 
     if not client.collection_exists(collection_name):
         client.create_collection(
@@ -89,6 +97,4 @@ def create_vector_store(
         case "inmemory":
             return init_inmemory_vector_store(embedding_container.model)
         case _:
-            raise Exception(
-                f"The specified type of vector store '{key}' is missing."
-            )
+            raise Exception(f"The specified type of vector store '{key}' is missing.")
