@@ -1,17 +1,13 @@
 from pathlib import Path
-import tomllib
-from typing import Any
+from functools import lru_cache
+
+DATA_DIR = Path("./data")
+PROMPT_DIR = Path("./data/prompts")
+VISUAL_DOC_STORE_DIR = Path("./data/storage")
 
 
-def get_cfg() -> dict[str, Any]:
-    config_file = Path("./config.toml")
-    with open(config_file, "rb") as stream:
-        cfg = tomllib.load(stream)
-    return cfg
-
-
+@lru_cache(maxsize=1)
 def load_prompts() -> dict[str, str]:
-    prompt_dir = Path("./data/prompts")
-    prompt_files = prompt_dir.glob("*.txt")
+    prompt_files = PROMPT_DIR.glob("*.txt")
     prompt_db = {file.stem: file.read_text(encoding="utf-8") for file in prompt_files}
     return prompt_db
