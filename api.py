@@ -48,7 +48,7 @@ def init_retriever() -> MultiSourceRetriever:
     )
 
     qdrant_client = AsyncQdrantClient(
-        url="http://localhost:6333",
+        url="http://qdrant:6333",
         api_key=os.getenv("QDRANT_API_KEY"),
     )
 
